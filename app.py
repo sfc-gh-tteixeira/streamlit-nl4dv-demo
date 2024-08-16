@@ -31,7 +31,7 @@ elif option=='Movies':
 elif option=='Sales':
     nl4dv_instance, data = init_nl4dv('https://raw.githubusercontent.com/nl4dv/nl4dv/master/examples/assets/data/superstore.csv')
 
-data
+st.dataframe(data, height=200)
 
 query = st.text_input("Say what you want to plot")
 
