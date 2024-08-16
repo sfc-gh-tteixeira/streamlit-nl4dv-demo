@@ -2,16 +2,22 @@ import streamlit as st
 from nl4dv import NL4DV
 import pandas as pd
 
-nl4dv_instance = None
-dependency_parser_config = {"name": "spacy", "model": "en_core_web_sm", "parser": None}
 
+@st.cache_resource
 def init_nl4dv(data_url):
-    global nl4dv_instance
-    
-    nl4dv_instance = NL4DV(data_url)
-    data = pd.read_csv(data_url)
-    preview = data.head(5)
-    preview
+    return NL4DV(data_url), pd.read_csv(data_url)
+
+
+"""
+# :speak_no_evil: NL4DV Demo
+
+[NL4DV](https://github.com/nl4dv/nl4dv) is a Python library that takes a natural language query
+about a given dataset and outputs a structured JSON object containing data attributes, analytic
+tasks, and visualizations ([Vega-Lite](https://vega.github.io/vega-lite/) specifications).
+Below is a demo showing it in action.
+"""
+
+""
 
 option = st.selectbox(
     "Choose a dataset",
@@ -19,24 +25,51 @@ option = st.selectbox(
 )
 
 if option=='Cars':
-    init_nl4dv('https://raw.githubusercontent.com/nl4dv/nl4dv/master/examples/assets/data/cars-w-year.csv')
+    nl4dv_instance, data = init_nl4dv('https://raw.githubusercontent.com/nl4dv/nl4dv/master/examples/assets/data/cars-w-year.csv')
 elif option=='Movies':
-    init_nl4dv('https://raw.githubusercontent.com/nl4dv/nl4dv/master/examples/assets/data/movies-w-year.csv')
+    nl4dv_instance, data = init_nl4dv('https://raw.githubusercontent.com/nl4dv/nl4dv/master/examples/assets/data/movies-w-year.csv')
 elif option=='Sales':
-    init_nl4dv('https://raw.githubusercontent.com/nl4dv/nl4dv/master/examples/assets/data/superstore.csv')
+    nl4dv_instance, data = init_nl4dv('https://raw.githubusercontent.com/nl4dv/nl4dv/master/examples/assets/data/superstore.csv')
 
-def process_query():
-    nl4dv_response = nl4dv_instance.analyze_query(st.session_state.query, dialog=False)
-    st.session_state.vl_spec = nl4dv_response['visList'][0]['vlSpec']        
-    st.session_state.nl4dv_response = nl4dv_response
+st.dataframe(data, height=200)
 
-query = st.text_input("Query", "", on_change=process_query, key='query')
+query = st.text_input("Say what you want to plot")
 
-if 'vl_spec' in st.session_state:
-    st.vega_lite_chart(None,st.session_state.vl_spec)
-    "attributeMap"
-    st.session_state.nl4dv_response['attributeMap']
-    "taskMap"
-    st.session_state.nl4dv_response['taskMap']
-    "visList"
-    st.session_state.nl4dv_response['visList']
+# Some spacing
+""
+""
+""
+
+if query:
+    nl4dv_response = nl4dv_instance.analyze_query(query)
+
+    """
+    ## Result
+    """
+
+    for viz in nl4dv_response['visList']:
+        st.vega_lite_chart(None, viz['vlSpec'])
+
+    if not nl4dv_response['visList']:
+        st.info("""
+            No results. _Try something else!_
+            """, icon=":material/info:")
+
+    # Some spacing
+    ""
+    ""
+    ""
+
+    with st.expander(":gray[Debug info for nerds]"):
+        "##### attributeMap"
+        nl4dv_response['attributeMap']
+
+        ""
+
+        "##### taskMap"
+        nl4dv_response['taskMap']
+
+        ""
+
+        "##### visList"
+        nl4dv_response['visList']
